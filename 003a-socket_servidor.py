@@ -17,6 +17,13 @@ import threading
 import json
 import datetime
 
+# Integración con base de datos
+try:
+    from database_models import SessionLocal, crear_log, crear_conexion, cerrar_conexion
+    DB_DISPONIBLE = True
+except ImportError:
+    DB_DISPONIBLE = False
+
 HOST  = "127.0.0.1"
 PORT  = 9500
 ENCODE = "utf-8"
@@ -73,6 +80,17 @@ def manejar_cliente(conexion: socket.socket, direccion: tuple) -> None:
     y responde en JSON hasta que el cliente se desconecta.
     """
     print(f"[SERVIDOR TCP] ✅ Cliente conectado: {direccion[0]}:{direccion[1]}")
+    
+    # Registrar conexión en BD
+    conexion_id = None
+    if DB_DISPONIBLE:
+        db = SessionLocal()
+        try:
+            crear_log(db, "INFO", "TCP", f"Cliente conectado desde {direccion[0]}:{direccion[1]}")
+            result = crear_conexion(db, "TCP", direccion[0], direccion[1], HOST, PORT)
+            conexion_id = result['id'] if result else None
+        finally:
+            db.close()
 
     # Mensaje de bienvenida
     bienvenida = {
@@ -102,6 +120,15 @@ def manejar_cliente(conexion: socket.socket, direccion: tuple) -> None:
     finally:
         conexion.close()
         print(f"[SERVIDOR TCP] ❌ Cliente desconectado: {direccion[0]}:{direccion[1]}")
+        
+        # Cerrar conexión en BD
+        if DB_DISPONIBLE and conexion_id:
+            db = SessionLocal()
+            try:
+                cerrar_conexion(db, conexion_id)
+                crear_log(db, "INFO", "TCP", f"Cliente desconectado {direccion[0]}:{direccion[1]}")
+            finally:
+                db.close()
 
 
 def iniciar_servidor() -> None:

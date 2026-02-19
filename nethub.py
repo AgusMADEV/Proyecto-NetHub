@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ╔══════════════════════════════════════════════════════════════╗
-║                      NetHub  v1.0                           ║
+║                      NetHub  v2.0                           ║
 ║        Sistema unificado de comunicaciones en red           ║
 ║                                                             ║
 ║  Programación de Servicios y Procesos — DAM-2               ║
@@ -14,6 +14,11 @@ Punto de entrada único que agrupa todos los módulos del proyecto:
   · IA remota jocarsa
   · TAME — IA personalizada
   · Ollama API  (3 métodos)
+  · API REST con FastAPI (autenticación JWT)
+  · Dashboard web de monitoreo en tiempo real
+  · Servidor TCP con cifrado TLS/SSL
+  · Base de datos SQLite3 nativa
+  · Métricas nativas (vanilla) para monitoreo
 
 Uso:
     python nethub.py
@@ -38,8 +43,9 @@ BANNER = r"""
   ██║╚██╗██║██╔══╝     ██║       ██╔══██║██║   ██║██╔══██╗
   ██║ ╚████║███████╗   ██║       ██║  ██║╚██████╔╝██████╔╝
   ╚═╝  ╚═══╝╚══════╝   ╚═╝       ╚═╝  ╚═╝ ╚═════╝ ╚═════╝
-              Sistema unificado de comunicaciones en red
-              Programación de Servicios y Procesos · DAM-2
+      Sistema unificado de comunicaciones en red v2.0
+       Programación de Servicios y Procesos · DAM-2
+               🔒 API REST · 📊 Dashboard · 🔐 TLS
 """
 
 SEPARADOR = "─" * 62
@@ -147,6 +153,55 @@ def accion_ollama():
     mod.main()
 
 
+def accion_api_rest():
+    _abrir_nueva_terminal("008-api_rest_flask.py", "NetHub | API REST")
+    print("  API REST FastAPI lanzada en una ventana aparte (puerto 8000).")
+    print("  Accede a http://127.0.0.1:8000/api/docs para la documentación.")
+    print("  Dashboard: http://127.0.0.1:8000/dashboard.html")
+
+
+def accion_servidor_tls():
+    _abrir_nueva_terminal("009a-socket_tls_servidor.py", "NetHub | Servidor TLS")
+    print("  Servidor TCP con TLS lanzado en una ventana aparte (puerto 9502).")
+    print("  Ciérrala con Ctrl+C cuando termines.")
+
+
+def accion_cliente_tls():
+    print(f"\n{SEPARADOR}")
+    print("  MÓDULO 9B — Cliente TCP con TLS/SSL")
+    print(SEPARADOR)
+    mod = _importar("009b-socket_tls_cliente.py")
+    mod.iniciar_cliente_tls()
+
+
+def accion_inicializar_bd():
+    print(f"\n{SEPARADOR}")
+    print("  INICIALIZACIÓN DE BASE DE DATOS")
+    print(SEPARADOR)
+    mod = _importar("database_models.py")
+    mod.inicializar_base_datos()
+
+
+def accion_abrir_dashboard():
+    print(f"\n{SEPARADOR}")
+    print("  ABRIENDO DASHBOARD WEB")
+    print(SEPARADOR)
+    print("\n  Primero debes iniciar la API REST (opción 8)")
+    print("  Luego accede a: http://127.0.0.1:8000/dashboard.html")
+    print("\n  ¿Deseas iniciar la API REST ahora? (s/n)")
+    
+    respuesta = input("  > ").strip().lower()
+    if respuesta == 's':
+        accion_api_rest()
+        print("\n  Espera unos segundos y accede a:")
+        print("  http://127.0.0.1:8000/dashboard.html")
+        
+        import webbrowser
+        import time
+        time.sleep(2)
+        webbrowser.open("http://127.0.0.1:8000/dashboard.html")
+
+
 # ══════════════════════════════════════════════════════════════
 #  MENÚ PRINCIPAL
 # ══════════════════════════════════════════════════════════════
@@ -165,6 +220,13 @@ OPCIONES = [
     ("5",  "IA remota jocarsa     [API REST ngrok]",        accion_ia_remota),
     ("6",  "TAME — IA docente     [Ollama local]",          accion_tame),
     ("7",  "Ollama API  3 métodos [demostración]",          accion_ollama),
+    ("─",  None, None),
+    ("8",  "API REST + Dashboard  [FastAPI puerto 8000]",   accion_api_rest),
+    ("9s", "Servidor TCP con TLS  [cifrado SSL]",           accion_servidor_tls),
+    ("9c", "Cliente TCP con TLS   [conexión segura]",       accion_cliente_tls),
+    ("─",  None, None),
+    ("db", "Inicializar BD        [SQLite]",                accion_inicializar_bd),
+    ("web","Abrir Dashboard       [navegador]",             accion_abrir_dashboard),
 ]
 
 

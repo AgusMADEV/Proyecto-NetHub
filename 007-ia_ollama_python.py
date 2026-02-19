@@ -23,6 +23,13 @@ import json
 import sys
 import requests
 
+# Integración con base de datos
+try:
+    from database_models import SessionLocal, crear_log
+    DB_DISPONIBLE = True
+except ImportError:
+    DB_DISPONIBLE = False
+
 OLLAMA_BASE   = "http://localhost:11434"
 MODELO        = "qwen2.5:7b-instruct-q4_0"
 
@@ -36,6 +43,14 @@ def generar_sin_streaming(prompt: str) -> str:
     Llama al endpoint /api/generate de Ollama con stream:false.
     Espera a recibir toda la respuesta de una vez.
     """
+    # Registrar consulta
+    if DB_DISPONIBLE:
+        db = SessionLocal()
+        try:
+            crear_log(db, "INFO", "Ollama", f"Consulta (sin stream): {prompt[:50]}...")
+        finally:
+            db.close()
+    
     url = f"{OLLAMA_BASE}/api/generate"
     payload = {
         "model":  MODELO,
@@ -48,8 +63,21 @@ def generar_sin_streaming(prompt: str) -> str:
         datos = r.json()
         return datos.get("response", "(Sin respuesta)")
     except requests.exceptions.ConnectionError:
-        return "❌ Ollama no está en ejecución (localhost:11434)."
+        error_msg = "❌ Ollama no está en ejecución (localhost:11434)."
+        if DB_DISPONIBLE:
+            db = SessionLocal()
+            try:
+                crear_log(db, "ERROR", "Ollama", "Servicio no disponible")
+            finally:
+                db.close()
+        return error_msg
     except requests.exceptions.RequestException as e:
+        if DB_DISPONIBLE:
+            db = SessionLocal()
+            try:
+                crear_log(db, "ERROR", "Ollama", str(e))
+            finally:
+                db.close()
         return f"❌ Error: {e}"
 
 

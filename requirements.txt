@@ -1,0 +1,58 @@
+# ═══════════════════════════════════════════════════════════
+#  NETHUB - REQUISITOS MÍNIMOS DEL PROYECTO
+# ═══════════════════════════════════════════════════════════
+#
+#  Instalación:
+#    pip install -r requirements.txt
+#
+#  ✅ SOLO 6 DEPENDENCIAS CORE + 4 OPCIONALES
+#
+# ═══════════════════════════════════════════════════════════
+
+# ── Dependencias Core (OBLIGATORIAS) ───────────────────────
+
+# Variables de entorno
+python-dotenv>=1.0.0
+
+# API REST
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# Autenticación
+PyJWT>=2.8.0
+
+# HTTP requests (SMTP, IMAP, IA remota)
+requests>=2.31.0
+
+# WebSockets
+websockets>=12.0
+
+# ── Dependencias Opcionales ────────────────────────────────
+
+# Hash de contraseñas (RECOMENDADO)
+# bcrypt>=4.1.0
+
+# IA local con Ollama (OPCIONAL - solo si usas Ollama)
+# ollama>=0.1.6
+
+# Certificados SSL automáticos (OPCIONAL - puedes usar openssl CLI)
+# pyOpenSSL>=24.0.0
+
+# Métricas del sistema (OPCIONAL - CPU, RAM)
+# psutil>=5.9.0
+
+# ═══════════════════════════════════════════════════════════
+#  NOTAS
+# ═══════════════════════════════════════════════════════════
+#
+#  Python requerido: 3.10+
+#
+#  Librerías nativas de Python (NO requieren instalación):
+#  · SMTP/IMAP: smtplib, imaplib
+#  · Sockets TCP: socket, ssl
+#  · Base de datos: sqlite3
+#  · JSON/Threading: json, threading
+#
+#  Para producción, descomenta bcrypt (autenticación segura)
+#
+# ═══════════════════════════════════════════════════════════

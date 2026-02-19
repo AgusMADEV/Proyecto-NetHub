@@ -14,6 +14,13 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 
+# Integración con base de datos
+try:
+    from database_models import SessionLocal, crear_log, crear_mensaje
+    DB_DISPONIBLE = True
+except ImportError:
+    DB_DISPONIBLE = False
+
 # Cargar variables de entorno desde el archivo .env
 load_dotenv()
 
@@ -49,10 +56,31 @@ def enviar_correo(destinatario: str, asunto: str, cuerpo_html: str) -> bool:
             servidor.starttls()
             servidor.login(SMTP_USER, SMTP_PASSWORD)
             servidor.sendmail(SMTP_USER, destinatario, msg.as_string())
+        
         print(f"[SMTP] ✅ Correo enviado correctamente a {destinatario}")
+        
+        # Registrar en base de datos
+        if DB_DISPONIBLE:
+            db = SessionLocal()
+            try:
+                crear_log(db, "INFO", "SMTP", f"Email enviado a {destinatario}: {asunto}")
+                crear_mensaje(db, "EMAIL", SMTP_USER, destinatario, asunto, cuerpo_html[:100])
+            finally:
+                db.close()
+        
         return True
+        
     except smtplib.SMTPException as error:
         print(f"[SMTP] ❌ Error al enviar el correo: {error}")
+        
+        # Registrar error en base de datos
+        if DB_DISPONIBLE:
+            db = SessionLocal()
+            try:
+                crear_log(db, "ERROR", "SMTP", f"Error enviando email a {destinatario}: {str(error)}")
+            finally:
+                db.close()
+        
         return False
 
 

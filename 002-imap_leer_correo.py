@@ -14,6 +14,13 @@ import email
 from email.header import decode_header
 from dotenv import load_dotenv
 
+# Integración con base de datos
+try:
+    from database_models import SessionLocal, crear_log
+    DB_DISPONIBLE = True
+except ImportError:
+    DB_DISPONIBLE = False
+
 # Cargar variables de entorno
 load_dotenv()
 
@@ -74,6 +81,14 @@ def leer_correos() -> list[dict]:
         conexion = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
         conexion.login(IMAP_USER, IMAP_PASSWORD)
         print(f"[IMAP] ✅ Conectado como {IMAP_USER}")
+        
+        # Registrar conexión exitosa
+        if DB_DISPONIBLE:
+            db = SessionLocal()
+            try:
+                crear_log(db, "INFO", "IMAP", f"Conexión exitosa a {IMAP_SERVER}")
+            finally:
+                db.close()
 
         # Seleccionar la bandeja de entrada
         conexion.select("INBOX")
@@ -113,9 +128,25 @@ def leer_correos() -> list[dict]:
 
         conexion.logout()
         print(f"[IMAP] 📬 Se han leído {len(correos_leidos)} correos.")
+        
+        # Registrar lectura exitosa
+        if DB_DISPONIBLE:
+            db = SessionLocal()
+            try:
+                crear_log(db, "INFO", "IMAP", f"{len(correos_leidos)} correos leídos de bandeja de entrada")
+            finally:
+                db.close()
 
     except imaplib.IMAP4.error as error:
         print(f"[IMAP] ❌ Error de conexión: {error}")
+        
+        # Registrar error
+        if DB_DISPONIBLE:
+            db = SessionLocal()
+            try:
+                crear_log(db, "ERROR", "IMAP", f"Error de conexión: {str(error)}")
+            finally:
+                db.close()
 
     return correos_leidos
 

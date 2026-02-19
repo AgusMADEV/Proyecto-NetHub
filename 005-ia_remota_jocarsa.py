@@ -16,6 +16,13 @@ import json
 import requests
 from dotenv import load_dotenv
 
+# Integración con base de datos
+try:
+    from database_models import SessionLocal, crear_log
+    DB_DISPONIBLE = True
+except ImportError:
+    DB_DISPONIBLE = False
+
 # Deshabilitar avisos de SSL no verificado
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -39,6 +46,14 @@ def preguntar_ia_remota(pregunta: str) -> str:
 
     Retorna la respuesta como cadena de texto.
     """
+    # Registrar consulta en BD
+    if DB_DISPONIBLE:
+        db = SessionLocal()
+        try:
+            crear_log(db, "INFO", "IA_Remota", f"Consulta: {pregunta[:50]}...")
+        finally:
+            db.close()
+    
     try:
         respuesta = requests.post(
             IA_REMOTA_URL,
@@ -48,10 +63,30 @@ def preguntar_ia_remota(pregunta: str) -> str:
             verify=False,   # Certificado auto-firmado de ngrok
         )
     except requests.exceptions.ConnectionError:
-        return "❌ Error: No se pudo conectar al servidor de IA remoto."
+        error_msg = "❌ Error: No se pudo conectar al servidor de IA remoto."
+        if DB_DISPONIBLE:
+            db = SessionLocal()
+            try:
+                crear_log(db, "ERROR", "IA_Remota", "Error de conexión")
+            finally:
+                db.close()
+        return error_msg
     except requests.exceptions.Timeout:
-        return "❌ Error: El servidor tardó demasiado en responder (timeout)."
+        error_msg = "❌ Error: El servidor tardó demasiado en responder (timeout)."
+        if DB_DISPONIBLE:
+            db = SessionLocal()
+            try:
+                crear_log(db, "ERROR", "IA_Remota", "Timeout")
+            finally:
+                db.close()
+        return error_msg
     except requests.exceptions.RequestException as e:
+        if DB_DISPONIBLE:
+            db = SessionLocal()
+            try:
+                crear_log(db, "ERROR", "IA_Remota", str(e))
+            finally:
+                db.close()
         return f"❌ Error en la solicitud: {e}"
 
     if respuesta.status_code != 200:

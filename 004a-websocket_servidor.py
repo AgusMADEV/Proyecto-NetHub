@@ -20,6 +20,13 @@ import datetime
 import websockets
 from websockets.server import WebSocketServerProtocol
 
+# Integración con base de datos
+try:
+    from database_models import SessionLocal, crear_log, crear_conexion, cerrar_conexion
+    DB_DISPONIBLE = True
+except ImportError:
+    DB_DISPONIBLE = False
+
 HOST  = "localhost"
 PORT  = 9501
 
@@ -71,6 +78,17 @@ async def gestionar_conexion(ws: WebSocketServerProtocol) -> None:
     cliente_id = f"{ws.remote_address[0]}:{ws.remote_address[1]}"
     clientes.add(ws)
     print(f"[WS SERVIDOR] ✅ Conectado: {cliente_id} | Total: {len(clientes)}")
+    
+    # Registrar conexión en BD
+    conexion_id = None
+    if DB_DISPONIBLE:
+        db = SessionLocal()
+        try:
+            crear_log(db, "INFO", "WebSocket", f"Cliente conectado: {cliente_id}")
+            result = crear_conexion(db, "WEBSOCKET", ws.remote_address[0], ws.remote_address[1], HOST, PORT)
+            conexion_id = result['id'] if result else None
+        finally:
+            db.close()
 
     # Avisar a todos de la nueva conexión
     await broadcast({"tipo": "sistema", "respuesta": f"'{cliente_id}' se ha unido."}, origen=ws)
@@ -96,6 +114,15 @@ async def gestionar_conexion(ws: WebSocketServerProtocol) -> None:
         clientes.discard(ws)
         await broadcast({"tipo": "sistema", "respuesta": f"'{cliente_id}' se ha desconectado."})
         print(f"[WS SERVIDOR] ❌ Desconectado: {cliente_id} | Total: {len(clientes)}")
+        
+        # Cerrar conexión en BD
+        if DB_DISPONIBLE and conexion_id:
+            db = SessionLocal()
+            try:
+                cerrar_conexion(db, conexion_id)
+                crear_log(db, "INFO", "WebSocket", f"Cliente desconectado: {cliente_id}")
+            finally:
+                db.close()
 
 
 async def main() -> None:
